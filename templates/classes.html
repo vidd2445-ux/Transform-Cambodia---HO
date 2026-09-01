@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}Locations{% endblock %}
+{% block page_title %}Locations{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="bi bi-building"></i> Locations</h5>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCentreModal">
+            <i class="bi bi-plus-circle"></i> Add Location
+        </button>
+    </div>
+
+    <div class="row g-3">
+        {% for c in classes %}
+        <div class="col-md-4 col-sm-6">
+            <div class="card shadow-sm h-100" style="border-top: 3px solid #D4A843;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h6 class="card-title mb-0">
+                            <i class="bi bi-building" style="color:#D4A843;"></i> {{ c.name }}
+                        </h6>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editCentre('{{ c.id }}', '{{ c.name }}', '{{ c.section }}')">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCentre('{{ c.id }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% if c.section %}
+                    <p class="text-muted mb-1 mt-2"><i class="bi bi-geo-alt"></i> {{ c.section }}</p>
+                    {% endif %}
+                    <hr>
+                    <p class="mb-0"><i class="bi bi-people"></i> <strong>{{ c.student_count }}</strong> staff enrolled</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Add Location Modal -->
+    <div class="modal fade" id="addCentreModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h5 class="modal-title"><i class="bi bi-building"></i> Add Location</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/classes/add">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Location Name</label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g. Transform Cambodia - Chbar Ampov" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location / Section</label>
+                            <input type="text" name="section" class="form-control" placeholder="e.g. Chbar Ampov District">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Location</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Location Modal -->
+    <div class="modal fade" id="editCentreModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Location</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/classes/edit">
+                    <div class="modal-body">
+                        <input type="hidden" name="id" id="editCentreId">
+                        <div class="mb-3">
+                            <label class="form-label">Location Name</label>
+                            <input type="text" name="name" id="editCentreName" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location / Section</label>
+                            <input type="text" name="section" id="editCentreSection" class="form-control">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Location</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal fade" id="deleteCentreModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#dc3545;color:#fff;">
+                    <h5 class="modal-title"><i class="bi bi-trash"></i> Remove Location</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure? All staff in this Location will also be removed.</p>
+                    <form method="POST" action="/classes/delete">
+                        <input type="hidden" name="id" id="deleteCentreId">
+                        <button type="submit" class="btn btn-danger w-100">Yes, Remove</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function editCentre(id, name, section) {
+    document.getElementById('editCentreId').value = id;
+    document.getElementById('editCentreName').value = name;
+    document.getElementById('editCentreSection').value = section || '';
+    new bootstrap.Modal(document.getElementById('editCentreModal')).show();
+}
+
+function deleteCentre(id) {
+    document.getElementById('deleteCentreId').value = id;
+    new bootstrap.Modal(document.getElementById('deleteCentreModal')).show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Staff{% endblock %}
+{% block page_title %}Staff{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <select class="form-select form-select-sm" id="filterCentre" style="width:auto;display:inline-block">
+                <option value="">(HO)</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}" {% if request.args.get('class')|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button class="btn btn-success btn-sm" onclick="exportCSV()">
+                <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="exportExcel()">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                <i class="bi bi-person-plus"></i> Enrol Staff
+            </button>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead style="background: #1a1a2e; color: #D4A843;">
+                    <tr>
+                        <th>Staff Name</th>
+                        <th>Location</th>
+                        <th>Contact</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTable">
+                    {% for s in staff %}
+                    <tr data-class="{{ s.class_id }}">
+                        <td>{{ s.name }}</td>
+                        <td>{{ s.class_name }}</td>
+                        <td>{{ s.phone|default('') }}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editStaff('{{ s.id }}')"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteStaff('{{ s.id }}')"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal -->
+    <div class="modal fade" id="addStaffModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h5 class="modal-title"><i class="bi bi-person-plus"></i> Enrol Staff</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/staff/add">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Staff Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <select name="class_id" class="form-select" required>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contact (Phone)</label>
+                            <input type="tel" name="contact" class="form-control" placeholder="e.g. +855 12 345 678">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Enrol Staff</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Staff Modal -->
+    <div class="modal fade" id="editStaffModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Update Staff Record</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/staff/edit">
+                    <div class="modal-body">
+                        <input type="hidden" name="id" id="editId">
+                        <div class="mb-3">
+                            <label class="form-label">Staff Name</label>
+                            <input type="text" name="name" id="editName" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <select name="class_id" id="editClassId" class="form-select" required>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contact (Phone)</label>
+                            <input type="tel" name="contact" id="editContact" class="form-control" placeholder="e.g. +855 12 345 678">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Update Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header" style="background:#dc3545;color:#fff;">
+                    <h5 class="modal-title"><i class="bi bi-trash"></i> Remove Staff</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to remove this staff member?</p>
+                    <form method="POST" action="/staff/delete">
+                        <input type="hidden" name="id" id="deleteId">
+                        <button type="submit" class="btn btn-danger w-100">Yes, Remove</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function editStaff(id) {
+    const row = document.querySelector(`tr [onclick="editStaff('${id}')"]`).closest('tr');
+    document.getElementById('editId').value = id;
+    document.getElementById('editName').value = row.cells[0].textContent.trim();
+    const classSel = document.getElementById('editClassId');
+    for (let o of classSel.options) { if (o.text === row.cells[1].textContent.trim()) o.selected = true; }
+    document.getElementById('editContact').value = row.cells[2].textContent.trim();
+    new bootstrap.Modal(document.getElementById('editStaffModal')).show();
+}
+
+function deleteStaff(id) {
+    document.getElementById('deleteId').value = id;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function exportCSV() {
+    window.location.href = '/staff/export';
+}
+
+function exportExcel() {
+    window.location.href = '/staff/export?format=excel';
+}
+
+// Filter by Location
+document.getElementById('filterCentre').addEventListener('change', function() {
+    const cid = this.value;
+    document.querySelectorAll('#staffTable tr').forEach(row => {
+        const matchClass = !cid || row.dataset.class === cid;
+        row.style.display = matchClass ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

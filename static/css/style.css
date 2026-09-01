@@ -1,0 +1,537 @@
+/* ==================================================
+   Transform Cambodia Attendance System
+   Brand: Gold/Amber (#D4A843) + Navy (#1a1a2e)
+   Tagline: Raising Cambodia's Next Leaders
+   ================================================== */
+
+:root {
+    --primary: #D4A843;
+    --primary-dark: #B8860B;
+    --primary-light: #E8C876;
+    --navy: #1a1a2e;
+    --navy-light: #2d2d44;
+    --navy-dark: #0f0f1e;
+    --accent: #D4A843;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #E8C876;
+    --light: #f8f9fa;
+    --white: #ffffff;
+    --gray: #6c757d;
+    --border-radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f0f2f5;
+    color: #333;
+    min-height: 100vh;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color: #ccc;
+    position: fixed;
+    left: 0;
+    top: 0;
+    overflow-y: auto;
+    transition: var(--transition);
+    z-index: 1000;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+}
+
+.sidebar-header {
+    padding: 24px 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(212,168,67,0.2);
+}
+
+.sidebar-header i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.sidebar-header h5 {
+    color: var(--primary);
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 1.1rem;
+}
+
+.sidebar-tagline {
+    color: rgba(212,168,67,0.7);
+    font-size: 0.75rem;
+    display: block;
+    font-style: italic;
+}
+
+.sidebar-nav {
+    padding: 16px 12px;
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    color: #a0a0b8;
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.sidebar-nav .nav-link i {
+    margin-right: 12px;
+    font-size: 1.1rem;
+    width: 22px;
+    text-align: center;
+}
+
+.sidebar-nav .nav-link:hover {
+    color: var(--primary);
+    background: rgba(212,168,67,0.08);
+}
+
+.sidebar-nav .nav-link.active {
+    color: var(--primary);
+    background: rgba(212,168,67,0.15);
+    font-weight: 600;
+    border-left: 3px solid var(--primary);
+}
+
+.sidebar-footer {
+    padding: 12px 20px;
+    border-top: 1px solid rgba(212,168,67,0.2);
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
+
+.sidebar-footer .nav-link {
+    color: #D4A843;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.sidebar-footer .nav-link i {
+    margin-right: 10px;
+}
+
+/* ===== Main Content ===== */
+.main-content {
+    margin-left: 260px;
+    min-height: 100vh;
+    transition: var(--transition);
+}
+
+/* ===== Top Bar ===== */
+.topbar {
+    background: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.topbar-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--navy);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: var(--gray);
+}
+
+/* ===== Content Area ===== */
+.content-area {
+    padding: 24px;
+}
+
+/* ===== Stat Cards ===== */
+.stat-card {
+    border-radius: var(--border-radius);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 100%;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) 100%);
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-staff {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    color: white;
+}
+
+.stat-staff .stat-icon {
+    color: var(--primary);
+}
+
+.stat-centres {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    color: white;
+}
+
+.stat-centres .stat-icon {
+    color: var(--navy);
+}
+
+.stat-present {
+    background: linear-gradient(135deg, #1a6b3c 0%, #28a745 100%);
+    color: white;
+}
+
+.stat-absent {
+    background: linear-gradient(135deg, #a71d2a 0%, #dc3545 100%);
+    color: white;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    width: 50px;
+    text-align: center;
+}
+
+.stat-info h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.stat-info p {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    margin-bottom: 0;
+}
+
+/* ===== TC Banner ===== */
+.tc-banner {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 50%, var(--primary-dark) 100%);
+    border-radius: var(--border-radius);
+    padding: 20px 24px;
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.tc-banner-content h4 {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.tc-banner-content h4 i {
+    color: var(--primary);
+    margin-right: 8px;
+}
+
+.tc-banner-content p {
+    opacity: 0.9;
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+/* ===== Cards ===== */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-weight: 600;
+}
+
+.card-header h6 {
+    font-weight: 600;
+}
+
+.card-header h6 i {
+    color: var(--primary);
+    margin-right: 8px;
+}
+
+/* ===== Buttons ===== */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+    border: none;
+    color: white;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(212,168,67,0.3);
+}
+
+.btn-outline-primary {
+    color: var(--primary-dark);
+    border-color: var(--primary);
+    transition: var(--transition);
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.btn-outline-success {
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.btn-outline-success:hover {
+    background: var(--success);
+    color: white;
+}
+
+.btn-outline-info {
+    color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+.btn-outline-info:hover {
+    background: #17a2b8;
+    color: white;
+}
+
+/* ===== Tables ===== */
+table thead th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: none;
+}
+
+table tbody td {
+    font-size: 0.9rem;
+    vertical-align: middle;
+}
+
+/* ===== Login Page ===== */
+.login-page {
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 40%, var(--primary-dark) 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px 32px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.login-header i {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.login-header h2 {
+    color: var(--navy);
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.login-tagline {
+    color: var(--primary-dark);
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.login-header .text-muted {
+    font-size: 0.85rem;
+}
+
+.login-card .btn-primary {
+    font-weight: 600;
+    padding: 10px;
+    font-size: 1rem;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* ===== Forms ===== */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(212,168,67,0.25);
+}
+
+.input-group-text {
+    background: var(--navy);
+    color: var(--primary);
+    border-color: var(--navy);
+}
+
+/* ===== Badges ===== */
+.badge {
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+/* ===== Alert ===== */
+.alert {
+    border-radius: var(--border-radius);
+    border: none;
+}
+
+/* ===== Modal ===== */
+.modal-content {
+    border-radius: var(--border-radius);
+    border: none;
+}
+
+.modal-header {
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.modal-header .modal-title i {
+    margin-right: 8px;
+}
+
+.modal-footer .btn-primary {
+    min-width: 120px;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-dark);
+    border-radius: 3px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0;
+    }
+    .stat-card {
+        padding: 16px;
+    }
+    .stat-icon {
+        font-size: 1.5rem;
+    }
+    .stat-info h3 {
+        font-size: 1.4rem;
+    }
+}
+
+/* ===== Animations ===== */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.stat-card,
+.card {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.stat-card:nth-child(2) { animation-delay: 0.1s; }
+.stat-card:nth-child(3) { animation-delay: 0.2s; }
+.stat-card:nth-child(4) { animation-delay: 0.3s; }
+
+/* ===== Cambodian-inspired decorative elements ===== */
+.life-centre-card {
+    border-top: 3px solid var(--primary);
+}
+
+.gold-accent {
+    color: var(--primary);
+}
+
+.navy-bg {
+    background-color: var(--navy);
+}
+
+/* Khmer temple pattern accent for headers */
+.khmer-header {
+    background: var(--navy);
+    color: var(--primary);
+    position: relative;
+}
+
+.khmer-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+}

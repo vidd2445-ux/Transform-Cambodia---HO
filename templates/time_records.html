@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% block title %}Time Records - Transform Cambodia{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="mb-1"><i class="bi bi-clock-history gold-accent"></i> Time Records</h4>
+            <p class="text-muted mb-0">Check-in &amp; check-out times for staff</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('export_time_records', class_id=selected_class, date=selected_date, format='excel') }}" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-excel"></i> Export Excel
+            </a>
+            <a href="{{ url_for('export_time_records', class_id=selected_class, date=selected_date) }}" class="btn btn-outline-primary">
+                <i class="bi bi-file-earmark-arrow-down"></i> Export CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Location</label>
+                    <select name="class_id" class="form-select">
+                        <option value="">All Locations</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if c.id == selected_class %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="date" class="form-control" value="{{ selected_date }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Time Records Table -->
+    <div class="card shadow-sm">
+        <div class="card-header khmer-header">
+            <h6 class="mb-0 text-white"><i class="bi bi-table"></i> Time Records for {{ selected_date }}</h6>
+        </div>
+        <div class="card-body p-0">
+            {% if records %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Location</th>
+                            <th>Enrolment No</th>
+                            <th>Staff Name</th>
+                            <th>Status</th>
+                            <th>Time In</th>
+                            <th>Check-in Location</th>
+                            <th>Time Out</th>
+                            <th>Check-out Location</th>
+                            <th>Hours</th>
+                            {% if request.cookies.get('user_role') == 'admin' %}<th>Actions</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in records %}
+                        <tr>
+                            <td>{{ r.class_name }}</td>
+                            <td>{{ r.roll_no }}</td>
+                            <td>{{ r.student_name }}</td>
+                            <td>
+                                {% if r.status == 'present' %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Present</span>
+                                {% elif r.status == 'absent' %}
+                                <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Absent</span>
+                                {% elif r.status == 'late' %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Late</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ r.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.time_in %}
+                                <span class="badge bg-info"><i class="bi bi-box-arrow-in-right"></i> {{ r.time_in }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ r.get('ip_city', '') }}{% if r.get('ip_country') %}, {{ r.get('ip_country', '') }}{% endif %}{% if not r.get('ip_city') and not r.get('ip_country') and r.get('ip_address') %}{{ r.get('ip_address') }}{% endif %}</small></td>
+                            <td>
+                                {% if r.time_out %}
+                                <span class="badge bg-info"><i class="bi bi-box-arrow-right"></i> {{ r.time_out }}</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ r.get('checkout_ip_city', '') }}{% if r.get('checkout_ip_country') %}, {{ r.get('checkout_ip_country', '') }}{% endif %}{% if not r.get('checkout_ip_city') and not r.get('checkout_ip_country') and r.get('checkout_ip_address') %}{{ r.get('checkout_ip_address') }}{% endif %}</small></td>
+                            <td>
+                                {% if r.time_in and r.time_out %}
+                                {% set ti_h = r.time_in.split(':')[0]|int %}
+                                {% set ti_m = r.time_in.split(':')[1]|int %}
+                                {% set to_h = r.time_out.split(':')[0]|int %}
+                                {% set to_m = r.time_out.split(':')[1]|int %}
+                                {% set total_min = (to_h * 60 + to_m) - (ti_h * 60 + ti_m) %}
+                                <span class="badge bg-primary">{{ '%0.1f'|format(total_min/60) }}h</span>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            {% if request.cookies.get('user_role') == 'admin' %}
+                            <td>
+                                <button class="btn btn-sm btn-outline-warning me-1" onclick="openTimeEditModal('{{ r.id }}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTimeRecord('{{ r.id }}')" title="Delete"><i class="bi bi-trash"></i></button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-clock" style="font-size:3rem;opacity:0.3;"></i>
+                <p class="mt-2">No time records found for this date.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Time Record Modal (Admin only) -->
+{% if request.cookies.get('user_role') == 'admin' %}
+<div class="modal fade" id="editTimeModal" tabindex="-1" aria-labelledby="editTimeModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background:#1a1a2e;color:#D4A843;">
+        <h5 class="modal-title" id="editTimeModalLabel"><i class="bi bi-pencil-square"></i> Edit Time Record</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editTimeAttId">
+        <div class="mb-3">
+          <label class="form-label">Staff Name</label>
+          <input type="text" class="form-control" id="editTimeStaffName" readonly>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-control" id="editTimeDate">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="editTimeStatus">
+            <option value="present">Present</option>
+            <option value="absent">Absent</option>
+            <option value="late">Late</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Time In</label>
+          <input type="time" class="form-control" id="editTimeTimeIn">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Time Out</label>
+          <input type="time" class="form-control" id="editTimeTimeOut">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveTimeEdit()">
+          <i class="bi bi-check-lg"></i> Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if request.cookies.get('user_role') == 'admin' %}
+<script>
+function openTimeEditModal(attId) {
+    fetch('/attendance/edit/' + attId)
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('editTimeAttId').value = data.id;
+            document.getElementById('editTimeStaffName').value = data.student_name;
+            document.getElementById('editTimeDate').value = data.date;
+            document.getElementById('editTimeStatus').value = data.status;
+            document.getElementById('editTimeTimeIn').value = data.time_in || '';
+            document.getElementById('editTimeTimeOut').value = data.time_out || '';
+            new bootstrap.Modal(document.getElementById('editTimeModal')).show();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(() => alert('Failed to load record.'));
+}
+
+function saveTimeEdit() {
+    const attId = document.getElementById('editTimeAttId').value;
+    const payload = {
+        date: document.getElementById('editTimeDate').value,
+        status: document.getElementById('editTimeStatus').value,
+        time_in: document.getElementById('editTimeTimeIn').value,
+        time_out: document.getElementById('editTimeTimeOut').value
+    };
+    fetch('/attendance/edit/' + attId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editTimeModal')).hide();
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(() => alert('Failed to save changes.'));
+}
+
+function deleteTimeRecord(attId) {
+    if (!confirm('Are you sure you want to delete this time record? This action cannot be undone.')) return;
+    fetch('/attendance/delete/' + attId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(() => alert('Failed to delete record.'));
+}
+</script>
+{% endif %}
+{% endblock %}

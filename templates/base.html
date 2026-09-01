@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Transform Cambodia{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img src="{{ url_for('static', filename='favicon.png') }}" alt="Transform Cambodia" style="width: 2rem; height: 2rem;">
+            <h5>Transform Cambodia</h5>
+            <small class="sidebar-tagline">Raising Cambodia's Next Leaders</small>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+            <a href="/staff" class="nav-link {% if request.path == '/staff' %}active{% endif %}">
+                <i class="bi bi-people"></i> Staff
+            </a>
+            <a href="/classes" class="nav-link {% if request.path == '/classes' %}active{% endif %}">
+                <i class="bi bi-building"></i> Locations
+            </a>
+            <a href="/attendance/mark" class="nav-link {% if request.path == '/attendance/mark' %}active{% endif %}">
+                <i class="bi bi-check2-square"></i> Mark Attendance
+            </a>
+            <a href="/attendance/records" class="nav-link {% if request.path == '/attendance/records' %}active{% endif %}">
+                <i class="bi bi-table"></i> Attendance Records
+            </a>
+            <a href="/attendance/qr" class="nav-link {% if request.path == '/attendance/qr' %}active{% endif %}">
+                <i class="bi bi-qr-code-scan"></i> QR Attendance
+            </a>
+            <a href="/attendance/time-records" class="nav-link {% if request.path == '/attendance/time-records' %}active{% endif %}">
+                <i class="bi bi-clock-history"></i> Time Records
+            </a>
+            <a href="/reports" class="nav-link {% if request.path == '/reports' %}active{% endif %}">
+                <i class="bi bi-bar-chart-line"></i> Reports
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/logout" class="nav-link text-warning">
+                <i class="bi bi-box-arrow-left"></i> Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Top Bar -->
+        <nav class="topbar">
+            <button class="btn btn-sm btn-outline-secondary d-md-none" onclick="toggleSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="topbar-title">{% block page_title %}{% endblock %}</span>
+            <div class="topbar-right">
+                <span class="badge" style="background: #D4A843; color: #1a1a2e;">{{ request.cookies.get('user_role', '').capitalize() }}</span>
+                <span>{{ request.cookies.get('user_name', '') }}</span>
+            </div>
+        </nav>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="container-fluid mt-3">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

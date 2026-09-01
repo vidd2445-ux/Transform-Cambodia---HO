@@ -1,0 +1,603 @@
+{% extends 'base.html' %}
+{% block title %}QR Code Attendance - Transform Cambodia{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="mb-1"><i class="bi bi-qr-code-scan gold-accent"></i> QR Code Attendance</h4>
+            <p class="text-muted mb-0">Scan QR codes to record check-in &amp; check-out times</p>
+        </div>
+        <div>
+            <span class="badge bg-primary fs-6"><i class="bi bi-calendar3"></i> {{ today }}</span>
+        </div>
+    </div>
+
+    <!-- GPS Status Banner -->
+    <div id="gps-admin-banner" class="alert alert-info mb-3" style="display:none;">
+        <i class="bi bi-geo-alt"></i> <span id="gps-admin-text">Acquiring GPS…</span>
+        <button id="gps-admin-retry-btn" class="btn btn-sm btn-outline-warning ms-2" style="display:none;" onclick="retryAdminGps()">
+            <i class="bi bi-arrow-repeat"></i> Retry GPS
+        </button>
+    </div>
+    <!-- GPS permission help panel (admin page) -->
+    <div id="gps-admin-help" class="alert alert-light mb-3" style="display:none; border:1px solid #dc3545;">
+        <h6 class="text-danger mb-2"><i class="bi bi-geo-alt"></i> Location Access Required</h6>
+        <p class="small mb-2">Your browser has blocked location access. To re-enable GPS for accurate geofence checking:</p>
+        <ul class="small mb-2 ps-3">
+            <li><strong>⚠ HTTPS required:</strong> GPS geolocation only works over <strong>HTTPS</strong> or <strong>localhost</strong>. If you are on <code>http://</code>, switch to <code>https://</code> — browsers silently block geolocation on plain HTTP.</li>
+            <li><strong>Chrome (Android/Desktop):</strong> Lock/&#9889; icon → Site Settings → Location → Allow</li>
+            <li><strong>Safari (iOS):</strong> Settings → Privacy & Security → Location Services → Safari Websites → While Using</li>
+            <li><strong>Safari (macOS):</strong> Safari → Preferences → Websites → Location → Allow</li>
+            <li><strong>Firefox:</strong> Location icon in address bar → Clear "Block" → Reload</li>
+            <li><strong>Samsung Internet:</strong> Settings → Sites and downloads → Location permissions → Allow</li>
+        </ul>
+        <p class="small text-muted mb-0"><i class="bi bi-info-circle"></i> After changing the setting, reload this page or tap <strong>Retry GPS</strong>.</p>
+    </div>
+
+    <!-- Scan Section -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header khmer-header">
+                    <h6 class="mb-0 text-white"><i class="bi bi-camera"></i> Scan QR Code</h6>
+                </div>
+                <div class="card-body text-center py-4">
+                    <p class="text-muted">Use your device camera to scan a staff member's QR code. The system will automatically record time-in or time-out.</p>
+                    <p class="text-muted small"><i class="bi bi-info-circle"></i> Camera scanning requires HTTPS or localhost. If the camera doesn't open, use manual entry below.</p>
+                    <button class="btn btn-primary btn-lg px-5" onclick="startScanner()" id="btn-start-scanner">
+                        <i class="bi bi-qr-code-scan"></i> Start Camera Scanner
+                    </button>
+                    <div id="scanner-area" class="mt-3" style="display:none;">
+                        <div id="qr-reader" style="width:100%;max-width:400px;margin:0 auto;"></div>
+                        <button class="btn btn-outline-danger mt-2" onclick="stopScanner()">
+                            <i class="bi bi-x-circle"></i> Stop Scanner
+                        </button>
+                    </div>
+                    <div id="scanner-error" class="mt-2" style="display:none;"></div>
+                    <hr>
+                    <p class="text-muted mb-2">Or enter code manually:</p>
+                    <div class="input-group" style="max-width:350px;margin:0 auto;">
+                        <input type="text" id="manual-code" class="form-control" placeholder="e.g. TC:S001 or paste QR URL">
+                        <button class="btn btn-primary" onclick="submitManualCode()">
+                            <i class="bi bi-check"></i> Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header khmer-header">
+                    <h6 class="mb-0 text-white"><i class="bi bi-clock-history"></i> Last Scan Result</h6>
+                </div>
+                <div class="card-body py-4" id="scan-result">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-qr-code" style="font-size:3rem;opacity:0.3;"></i>
+                        <p>No scan yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Codes for Staff -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header khmer-header">
+            <h6 class="mb-0 text-white"><i class="bi bi-person-badge"></i> Staff QR Codes</h6>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <select id="qr-class-filter" class="form-select" onchange="filterQRCodes()">
+                        <option value="">(HO)</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 text-end d-flex gap-2 justify-content-end flex-wrap">
+                    <button class="btn btn-warning" onclick="generateAllAIQR()" id="btn-generate-all-ai">
+                        <i class="bi bi-stars"></i> Generate AI QR Codes
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="printQRCodes()">
+                        <i class="bi bi-printer"></i> Print QR Codes
+                    </button>
+                </div>
+            </div>
+            <div class="row" id="qr-grid">
+                {% for s in staff %}
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-3 qr-card" data-class="{{ s.class_id }}">
+                    <div class="card text-center" style="border-top:3px solid #D4A843;">
+                        <div class="card-body p-3">
+                            <!-- QR code: server-generated image, no canvas -->
+                            <div class="qr-img-wrapper mb-2" id="qr-wrapper-{{ s.id }}" style="width:120px;height:120px;margin:0 auto;overflow:hidden;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fff;">
+                                <img src="/attendance/qr/image/{{ s.id }}" alt="QR Code for {{ s.name }}" style="width:120px;height:120px;display:block;object-fit:contain;">
+                            </div>
+                            <div class="mb-2"><code class="small">{{ request.host_url }}attendance/qr/scan?sid={{ s.id }}</code></div>
+                            <div class="d-flex justify-content-center mb-2">
+                                <button class="btn btn-sm btn-warning" onclick="generateAIQR('{{ s.id }}', this)" title="Generate AI-branded QR code with Transform Cambodia frame">
+                                    <i class="bi bi-stars"></i> Generate AI QR
+                                </button>
+                            </div>
+                            <h6 class="mb-1">{{ s.name }}</h6>
+                            <small class="text-muted">{{ s.class_name }}</small>
+                            <div class="mt-2">
+                                {% if s.today_status == 'not_marked' %}
+                                <span class="badge bg-secondary"><i class="bi bi-dash-circle"></i> Not Checked In</span>
+                                {% elif s.today_time_in and not s.today_time_out %}
+                                <span class="badge bg-success"><i class="bi bi-box-arrow-in-right"></i> In: {{ s.today_time_in }}</span>
+                                {% elif s.today_time_in and s.today_time_out %}
+                                <span class="badge bg-info"><i class="bi bi-check-circle"></i> In: {{ s.today_time_in }} | Out: {{ s.today_time_out }}</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">{{ s.today_status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% if not staff %}
+                <div class="col-12 text-center py-4 text-muted">
+                    <i class="bi bi-people" style="font-size:2rem;opacity:0.3;"></i>
+                    <p>No staff enrolled yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- QR Scanner Library only (no qrcode.js needed - using server-side QR images) -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+        onerror="window.__html5QrLibFailed=true"></script>
+<script>
+/* =====================================================
+   QR Code Attendance - Client-side Logic
+   QR display: server-side images (no canvas, no CDN qrcode.js)
+   Scanner: html5-qrcode for camera scanning
+   AI QR: server-side framed QR generation
+   ===================================================== */
+
+/* --- GPS State --- */
+let _gpsLat = '';
+let _gpsLon = '';
+let _gpsAcc = '';
+let _gpsReady = false;
+
+// ═══════════════════════════════════════════════════════════
+// GPS Geofence Logic for Admin QR Scanner Page
+// Two-phase approach: quick low-accuracy fix, then high-accuracy refinement
+// ═══════════════════════════════════════════════════════════
+(function() {
+    const banner = document.getElementById('gps-admin-banner');
+    const bannerText = document.getElementById('gps-admin-text');
+    const retryBtn = document.getElementById('gps-admin-retry-btn');
+    const helpPanel = document.getElementById('gps-admin-help');
+    if (banner) banner.style.display = '';
+
+    // Secure context check — geolocation requires HTTPS or localhost
+    var isSecure = location.protocol === 'https:';
+    var isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+    // GPS options — fresh readings, generous timeouts
+    var gpsOptsLow  = { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 };
+    var gpsOptsHigh = { enableHighAccuracy: true,  timeout: 30000, maximumAge: 0 };
+
+    function setBanner(cls, html) {
+        if (banner) banner.className = 'alert ' + cls + ' mb-3';
+        if (bannerText) bannerText.innerHTML = html;
+    }
+
+    function onAdminGpsSuccess(pos) {
+        _gpsLat = pos.coords.latitude;
+        _gpsLon = pos.coords.longitude;
+        _gpsAcc = Math.round(pos.coords.accuracy);
+        _gpsReady = true;
+
+        setBanner('alert-success mb-3',
+            '<i class="bi bi-check-circle"></i> GPS acquired (' +
+            _gpsLat.toFixed(5) + ', ' + _gpsLon.toFixed(5) +
+            ' ±' + _gpsAcc + 'm) — geofence will be verified on scan');
+
+        if (retryBtn) retryBtn.style.display = 'none';
+        if (helpPanel) helpPanel.style.display = 'none';
+
+        // If accuracy is poor (>100m), try refining with high accuracy
+        if (_gpsAcc > 100) {
+            setBanner('alert-info mb-3',
+                '<i class="bi bi-geo-alt"></i> GPS acquired (±' + _gpsAcc +
+                'm) — refining for better accuracy…');
+            navigator.geolocation.getCurrentPosition(onAdminGpsSuccess, function() {
+                // Refinement failed — keep the rough position
+            }, gpsOptsHigh);
+        }
+    }
+
+    function onAdminGpsError(err) {
+        let msg = 'GPS unavailable';
+        let isDenied = false;
+        if (err.code === 1) { msg = 'Location permission denied'; isDenied = true; }
+        else if (err.code === 2) msg = 'Position unavailable';
+        else if (err.code === 3) msg = 'GPS request timed out';
+
+        setBanner('alert-warning mb-3',
+            '<i class="bi bi-exclamation-triangle"></i> ' + msg +
+            ' — check-in/out will proceed but flagged as no GPS');
+        if (retryBtn) retryBtn.style.display = '';
+
+        if (isDenied) {
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
+                    if (result.state === 'denied') {
+                        if (helpPanel) helpPanel.style.display = '';
+                        setBanner('alert-warning mb-3',
+                            '<i class="bi bi-exclamation-triangle"></i> Location blocked — tap Retry or follow instructions below');
+                    } else if (result.state === 'prompt') {
+                        setBanner('alert-warning mb-3',
+                            '<i class="bi bi-exclamation-triangle"></i> Location not yet granted — tap Retry GPS to allow');
+                    }
+                }).catch(function() {
+                    if (helpPanel) helpPanel.style.display = '';
+                });
+            } else {
+                if (helpPanel) helpPanel.style.display = '';
+            }
+        }
+    }
+
+    // Retry function (global so the retry button can call it)
+    window.retryAdminGps = function() {
+        setBanner('alert-info mb-3', '<i class="bi bi-geo-alt"></i> Retrying GPS…');
+        if (retryBtn) retryBtn.style.display = 'none';
+        // Two-phase retry: quick low-accuracy fix first
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            onAdminGpsSuccess(pos);
+            // If accuracy is rough, auto-refine
+            if (pos.coords.accuracy > 50) {
+                navigator.geolocation.getCurrentPosition(onAdminGpsSuccess, function(){}, gpsOptsHigh);
+            }
+        }, onAdminGpsError, gpsOptsLow);
+    };
+
+    // ── Secure Context Check ──
+    // Modern browsers silently fail geolocation on HTTP (non-secure context).
+    // navigator.geolocation may exist but getCurrentPosition never returns.
+    if (!isSecure && !isLocalhost) {
+        setBanner('alert-danger mb-3',
+            '<i class="bi bi-shield-lock"></i> <strong>GPS requires HTTPS</strong> — ' +
+            'location access is blocked on plain HTTP. Please access this app via ' +
+            '<strong>HTTPS</strong> or <strong>localhost</strong>. Check-in/out will proceed without GPS.');
+        if (helpPanel) helpPanel.style.display = '';
+        if (retryBtn) retryBtn.style.display = '';  // show retry in case user switches
+        return; // Do NOT attempt geolocation on insecure context — it will silently hang
+    }
+
+    // Request GPS on page load — two-phase approach
+    if ('geolocation' in navigator) {
+        setBanner('alert-info mb-3', '<i class="bi bi-geo-alt"></i> Acquiring GPS location…');
+        // Phase 1: Quick low-accuracy position
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            onAdminGpsSuccess(pos);
+            // Phase 2: Refine with high accuracy if the first was rough
+            if (pos.coords.accuracy > 50) {
+                setBanner('alert-info mb-3',
+                    '<i class="bi bi-geo-alt"></i> GPS acquired (±' +
+                    Math.round(pos.coords.accuracy) + 'm) — refining…');
+                navigator.geolocation.getCurrentPosition(onAdminGpsSuccess, function() {
+                    // Refinement timed out — we still have the rough position
+                }, gpsOptsHigh);
+            }
+        }, onAdminGpsError, gpsOptsLow);
+    } else {
+        setBanner('alert-warning mb-3',
+            '<i class="bi bi-exclamation-triangle"></i> Geolocation not supported — check-in/out will proceed but flagged as no GPS');
+    }
+})();
+
+let html5QrCode = null;
+
+/* --- Scanner Functions --- */
+function startScanner() {
+    if (typeof Html5Qrcode === 'undefined') {
+        const errArea = document.getElementById('scanner-error');
+        const btn = document.getElementById('btn-start-scanner');
+        errArea.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Scanner library could not be loaded. Please use the manual code entry below, or check your internet connection and reload.</div>';
+        errArea.style.display = 'block';
+        if (btn) { btn.classList.add('btn-disabled'); btn.style.opacity = '0.5'; }
+        return;
+    }
+    // Check for HTTPS/localhost requirement for camera access
+    const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isSecure) {
+        const errArea = document.getElementById('scanner-error');
+        errArea.innerHTML = '<div class="alert alert-danger"><i class="bi bi-shield-lock"></i> <strong>Camera requires HTTPS</strong><br>Browser security blocks camera access on plain HTTP. Please access this app via <strong>HTTPS</strong> or <strong>localhost</strong>. You can still use the <strong>manual code entry</strong> below.</div>';
+        errArea.style.display = 'block';
+        // Still show scanner area in case user wants to try, but warn clearly
+        document.getElementById('scanner-area').style.display = 'block';
+    } else {
+        document.getElementById('scanner-area').style.display = 'block';
+        document.getElementById('scanner-error').style.display = 'none';
+    }
+    html5QrCode = new Html5Qrcode('qr-reader');
+    html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        () => {} // QR scan errors are normal (no QR in frame)
+    ).catch(err => {
+        const errMsg = err && err.message ? err.message : 'Permission denied or no camera found';
+        const isHttp = location.protocol === 'http:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+        const helpTip = isHttp
+            ? '<br><small class="text-muted">Tip: Camera access requires HTTPS. Use manual entry or switch to HTTPS/localhost.</small>'
+            : '<br><small class="text-muted">Tip: Make sure camera permissions are allowed in your browser settings.</small>';
+        document.getElementById('scan-result').innerHTML = `
+            <div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Camera access failed: ${errMsg}.${helpTip}</div>`;
+        document.getElementById('scanner-area').style.display = 'none';
+    });
+}
+
+function stopScanner() {
+    if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            document.getElementById('scanner-area').style.display = 'none';
+        }).catch(() => {
+            document.getElementById('scanner-area').style.display = 'none';
+        });
+    }
+}
+
+function onScanSuccess(decodedText) {
+    stopScanner();
+    submitCode(decodedText);
+}
+
+function submitManualCode() {
+    const code = document.getElementById('manual-code').value.trim();
+    if (code) submitCode(code);
+    else {
+        document.getElementById('scan-result').innerHTML = `
+            <div class="alert alert-warning"><i class="bi bi-info-circle"></i> Please enter a staff code or QR URL.</div>`;
+    }
+}
+
+function submitCode(code) {
+    const result = document.getElementById('scan-result');
+    result.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Processing...</p></div>';
+
+    // Build payload with GPS data
+    const payload = { code: code };
+    if (_gpsReady) {
+        payload.gps_lat = _gpsLat;
+        payload.gps_lon = _gpsLon;
+        payload.gps_accuracy = _gpsAcc;
+    }
+
+    fetch('/attendance/qr/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => {
+        if (!r.ok) {
+            return r.json().catch(() => ({ success: false, message: 'Server error (' + r.status + ')' }));
+        }
+        return r.json();
+    })
+    .then(data => {
+        if (data.success) {
+            const icon = data.action === 'timein' ? 'box-arrow-in-right' : 'box-arrow-right';
+            const color = data.action === 'timein' ? 'success' : 'info';
+            const label = data.action === 'timein' ? 'Check-In' : 'Check-Out';
+            const geoBadge = data.geofence_status === 'verified'
+                ? '<span class="badge bg-success ms-1"><i class="bi bi-geo-alt"></i> GPS Verified (' + (data.geofence_distance || '?') + 'm)</span>'
+                : data.geofence_status === 'outside'
+                ? '<span class="badge bg-danger ms-1"><i class="bi bi-geo-alt"></i> Outside Geofence</span>'
+                : '<span class="badge bg-warning text-dark ms-1"><i class="bi bi-geo-alt"></i> No GPS</span>';
+            result.innerHTML = `
+                <div class="text-center mb-2">
+                    <i class="bi bi-check-circle" style="font-size:3rem;color:#198754;"></i>
+                </div>
+                <div class="alert alert-${color}">
+                    <h5><i class="bi bi-${icon}"></i> ${label} Recorded! ${geoBadge}</h5>
+                    <p class="mb-1"><strong>${data.name}</strong></p>
+                    ${data.time_in ? '<p class="mb-1"><i class="bi bi-box-arrow-in-right"></i> Time In: ' + data.time_in + '</p>' : ''}
+                    ${data.time_out ? '<p class="mb-0"><i class="bi bi-box-arrow-right"></i> Time Out: ' + data.time_out + '</p>' : ''}
+                    <small class="text-muted">${new Date().toLocaleString()}</small>
+                </div>`;
+            // Refresh QR status cards after 2s
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            result.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> ${data.message || 'Unknown error'}
+                </div>`;
+        }
+    })
+    .catch(() => {
+        result.innerHTML = `
+            <div class="alert alert-danger"><i class="bi bi-wifi-off"></i> Network error. Please check your connection and try again.</div>`;
+    });
+}
+
+function filterQRCodes() {
+    const cid = document.getElementById('qr-class-filter').value;
+    document.querySelectorAll('.qr-card').forEach(card => {
+        card.style.display = (!cid || card.dataset.class === cid) ? '' : 'none';
+    });
+}
+
+/* --- AI QR Generation --- */
+function generateAIQR(sid, btn) {
+    if (!btn) btn = event && event.currentTarget;
+    const origHTML = btn ? btn.innerHTML : '<i class="bi bi-stars"></i> Generate AI QR';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+    }
+
+    fetch('/attendance/qr/ai-generate/' + sid)
+        .then(resp => {
+            if (resp.redirected) {
+                throw new Error('Session expired. Please log in again.');
+            }
+            if (!resp.ok) {
+                return resp.json().then(data => {
+                    throw new Error(data.error || 'Failed to generate QR code (status ' + resp.status + ')');
+                }).catch(() => {
+                    throw new Error('Failed to generate QR code (status ' + resp.status + ')');
+                });
+            }
+            return resp;
+        })
+        .then(() => {
+            // Replace the standard QR image with the AI-framed version inside the wrapper
+            const wrapper = document.getElementById('qr-wrapper-' + sid);
+            if (wrapper) {
+                const standardImg = wrapper.querySelector('img');
+                // Remove any existing AI preview
+                const existingPreview = wrapper.querySelector('.ai-qr-preview');
+                if (existingPreview) existingPreview.remove();
+
+                // Create AI QR preview below the standard QR
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'ai-qr-preview';
+                previewDiv.style.cssText = 'width:100%;max-width:110px;margin:6px auto 0;overflow:hidden;border-radius:6px;border:2px solid #D4A843;';
+                const img = document.createElement('img');
+                img.src = '/static/ai_qr/' + sid + '.png?' + Date.now();
+                img.style.cssText = 'width:100%;height:auto;display:block;object-fit:contain;';
+                img.alt = 'AI QR for ' + sid;
+                previewDiv.appendChild(img);
+                wrapper.appendChild(previewDiv);
+            }
+            if (btn) {
+                btn.innerHTML = '<i class="bi bi-stars"></i> View AI QR';
+                btn.onclick = () => window.open('/static/ai_qr/' + sid + '.png', '_blank');
+            }
+        })
+        .catch(err => {
+            alert('Error: ' + err.message);
+            if (btn) btn.innerHTML = origHTML;
+        })
+        .finally(() => { if (btn) btn.disabled = false; });
+}
+
+function generateAllAIQR() {
+    const btn = document.getElementById('btn-generate-all-ai');
+    if (!btn) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating...';
+
+    const staffIds = [];
+    document.querySelectorAll('.qr-card').forEach(card => {
+        const wrapper = card.querySelector('.qr-img-wrapper');
+        if (wrapper && wrapper.id && wrapper.id.startsWith('qr-wrapper-')) {
+            staffIds.push(wrapper.id.replace('qr-wrapper-', ''));
+        }
+    });
+
+    let completed = 0;
+    let failedCount = 0;
+    const total = staffIds.length;
+    if (total === 0) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-stars"></i> Generate AI QR Codes';
+        return;
+    }
+
+    staffIds.forEach((sid, idx) => {
+        setTimeout(() => {
+            fetch('/attendance/qr/ai-generate/' + sid)
+                .then(resp => {
+                    if (resp.redirected) {
+                        failedCount++;
+                        console.error('AI QR: session expired for', sid);
+                    } else if (!resp.ok) {
+                        failedCount++;
+                        console.error('AI QR generation failed for', sid, resp.status);
+                    } else {
+                        // Add AI QR preview to card, constrained within wrapper
+                        const wrapper = document.getElementById('qr-wrapper-' + sid);
+                        if (wrapper) {
+                            const existingPreview = wrapper.querySelector('.ai-qr-preview');
+                            if (!existingPreview) {
+                                const previewDiv = document.createElement('div');
+                                previewDiv.className = 'ai-qr-preview';
+                                previewDiv.style.cssText = 'width:100%;max-width:110px;margin:6px auto 0;overflow:hidden;border-radius:6px;border:2px solid #D4A843;';
+                                const img = document.createElement('img');
+                                img.src = '/static/ai_qr/' + sid + '.png?' + Date.now();
+                                img.style.cssText = 'width:100%;height:auto;display:block;object-fit:contain;';
+                                img.alt = 'AI QR for ' + sid;
+                                wrapper.appendChild(previewDiv);
+                                previewDiv.appendChild(img);
+                            }
+                        }
+                        // Update individual button
+                        const wrapperEl = document.getElementById('qr-wrapper-' + sid);
+                        if (wrapperEl) {
+                            const qrCard = wrapperEl.closest('.qr-card');
+                            const aiBtn = qrCard ? qrCard.querySelector('.btn-warning') : null;
+                            if (aiBtn) {
+                                aiBtn.innerHTML = '<i class="bi bi-stars"></i> View AI QR';
+                                aiBtn.onclick = () => window.open('/static/ai_qr/' + sid + '.png', '_blank');
+                            }
+                        }
+                    }
+                    completed++;
+                    if (completed === total) finishAll();
+                })
+                .catch(() => {
+                    failedCount++;
+                    completed++;
+                    if (completed === total) finishAll();
+                });
+        }, idx * 400); // staggered 400ms apart
+    });
+
+    function finishAll() {
+        btn.disabled = false;
+        if (failedCount > 0) {
+            btn.innerHTML = '<i class="bi bi-exclamation-triangle"></i> ' + failedCount + ' of ' + total + ' Failed';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="bi bi-stars"></i> Generate AI QR Codes';
+            }, 4000);
+        } else {
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> All Generated!';
+            setTimeout(() => {
+                btn.innerHTML = '<i class="bi bi-stars"></i> Generate AI QR Codes';
+            }, 3000);
+        }
+    }
+}
+
+function printQRCodes() {
+    window.print();
+}
+
+/* --- Scanner library availability check --- */
+(function() {
+    window.addEventListener('load', function() {
+        if (typeof Html5Qrcode === 'undefined') {
+            const btn = document.getElementById('btn-start-scanner');
+            if (btn) {
+                btn.title = 'Scanner library not loaded - use manual entry';
+                btn.style.opacity = '0.6';
+            }
+        }
+    });
+})();
+</script>
+
+<style>
+@media print {
+    .sidebar, .topbar, .btn, .form-select, #scanner-area, #scanner-error, .card-header { display: none !important; }
+    .main-content { margin-left: 0 !important; }
+    .qr-card { break-inside: avoid; }
+    .ai-qr-preview { display: block !important; }
+}
+</style>
+{% endblock %}

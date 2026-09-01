@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Transform Cambodia Banner -->
+    <div class="tc-banner mb-4">
+        <div class="tc-banner-content">
+            <h4><img src="{{ url_for('static', filename='favicon.png') }}" alt="" style="width: 1.8rem; height: 1.8rem; vertical-align: middle;"> Transform Cambodia</h4>
+            <p>Raising Cambodia's Next Leaders — 4000+ staff impacted since 2006</p>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-staff">
+                <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+                <div class="stat-info">
+                    <h3>{{ total_staff }}</h3>
+                    <p>Total Staff</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-centres">
+                <div class="stat-icon"><i class="bi bi-building"></i></div>
+                <div class="stat-info">
+                    <h3>{{ total_centres }}</h3>
+                    <p>Locations</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-present">
+                <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+                <div class="stat-info">
+                    <h3>{{ present_today }}</h3>
+                    <p>Present Today</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card stat-absent">
+                <div class="stat-icon"><i class="bi bi-x-circle-fill"></i></div>
+                <div class="stat-info">
+                    <h3>{{ absent_today }}</h3>
+                    <p>Absent Today</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Check-in/out Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card" style="background:linear-gradient(135deg,#28a745,#20c997);color:#fff;">
+                <div class="stat-icon"><i class="bi bi-box-arrow-in-right"></i></div>
+                <div class="stat-info">
+                    <h3>{{ checked_in }}</h3>
+                    <p>Checked In Today</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card" style="background:linear-gradient(135deg,#17a2b8,#138496);color:#fff;">
+                <div class="stat-icon"><i class="bi bi-box-arrow-right"></i></div>
+                <div class="stat-info">
+                    <h3>{{ checked_out }}</h3>
+                    <p>Checked Out Today</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card" style="background:linear-gradient(135deg,#ffc107,#e0a800);color:#1a1a2e;">
+                <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+                <div class="stat-info">
+                    <h3>{{ checked_in - checked_out if checked_in > checked_out else 0 }}</h3>
+                    <p>Still In Centre</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a1a2e,#343a50);color:#D4A843;">
+                <div class="stat-icon"><i class="bi bi-late"></i></div>
+                <div class="stat-info">
+                    <h3>{{ late_today }}</h3>
+                    <p>Late Today</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-bar-chart-line"></i> Attendance Trend (Last 7 Days)</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="attendanceChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Today's Overview</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="todayPieChart" height="200"></canvas>
+                    {% if present_today + absent_today + late_today > 0 %}
+                    <p class="text-center mt-2 mb-0">
+                        <strong>Attendance Rate:</strong>
+                        {{ ((present_today + late_today) / (present_today + absent_today + late_today) * 100) | round(1) }}%
+                    </p>
+                    {% else %}
+                    <p class="text-center mt-2 mb-0 text-muted">No attendance marked today</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0"><i class="bi bi-lightning-fill"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <a href="/attendance/mark" class="btn btn-primary me-2 mb-2">
+                        <i class="bi bi-check2-square"></i> Mark Attendance
+                    </a>
+                    <a href="/staff" class="btn btn-outline-primary me-2 mb-2">
+                        <i class="bi bi-people"></i> Manage Staff
+                    </a>
+                    <a href="/classes" class="btn btn-outline-primary me-2 mb-2">
+                        <i class="bi bi-building"></i> Locations
+                    </a>
+                    <a href="/attendance/records" class="btn btn-outline-success me-2 mb-2">
+                        <i class="bi bi-table"></i> View Records
+                    </a>
+                    <a href="/reports" class="btn btn-outline-info me-2 mb-2">
+                        <i class="bi bi-bar-chart-line"></i> Reports
+                    </a>
+                    <a href="/attendance/qr" class="btn btn-outline-warning me-2 mb-2">
+                        <i class="bi bi-qr-code-scan"></i> QR Attendance
+                    </a>
+                    {% if session.get('user_role') == 'admin' or request.cookies.get('user_role') == 'admin' %}
+                    <a href="/setup-webhook" class="btn btn-outline-secondary me-2 mb-2">
+                        <i class="bi bi-satellite"></i> Telegram Webhook
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+fetch('/api/attendance-chart')
+    .then(r => r.json())
+    .then(data => {
+        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.date),
+                datasets: [
+                    { label: 'Present', data: data.map(d => d.present), backgroundColor: '#D4A843' },
+                    { label: 'Absent', data: data.map(d => d.absent), backgroundColor: '#dc3545' },
+                    { label: 'Late', data: data.map(d => d.late), backgroundColor: '#E8C876' }
+                ]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    });
+
+const p = {{ present_today }}, a = {{ absent_today }}, l = {{ late_today }};
+if (p + a + l > 0) {
+    const ctx2 = document.getElementById('todayPieChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'doughnut',
+        data: {
+            labels: ['Present', 'Absent', 'Late'],
+            datasets: [{
+                data: [p, a, l],
+                backgroundColor: ['#D4A843', '#dc3545', '#E8C876']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+}
+</script>
+{% endblock %}

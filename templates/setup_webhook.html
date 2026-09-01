@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Telegram Webhook - Transform Cambodia</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #1a1a2e; --card: #16213e; --accent: #D4A843; --text: #e0e0e0; --muted: #888;
+            --danger: #e74c3c; --success: #27ae60; --border: #2a2a4a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .card { background: var(--card); border-radius: 16px; padding: 32px; max-width: 600px; width: 90%; border: 1px solid var(--border); }
+        h1 { color: var(--accent); font-size: 1.5rem; margin-bottom: 8px; }
+        p.desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5; }
+        label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+        input[type="text"] { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; outline: none; }
+        input:focus { border-color: var(--accent); }
+        button { background: var(--accent); color: var(--bg); border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem; margin-top: 12px; }
+        button:hover { opacity: 0.9; }
+        .info-box { background: rgba(212,168,67,0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 14px; margin-top: 16px; }
+        .info-box h3 { color: var(--accent); font-size: 0.95rem; margin-bottom: 6px; }
+        .info-box .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; }
+        .info-box .row .label { color: var(--muted); }
+        .info-box .row .val { color: var(--text); word-break: break-all; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .status-dot.green { background: var(--success); }
+        .status-dot.red { background: var(--danger); }
+        .flash-msg { padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 0.9rem; }
+        .flash-msg.success { background: rgba(39,174,96,0.15); border: 1px solid var(--success); color: var(--success); }
+        .flash-msg.danger { background: rgba(231,76,60,0.15); border: 1px solid var(--danger); color: var(--danger); }
+        a.back { color: var(--accent); text-decoration: none; font-size: 0.85rem; display: inline-block; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1><i class="fas fa-satellite-dish"></i> Setup Telegram Webhook</h1>
+        <p class="desc">
+            On localhost, the bot uses <strong>polling mode</strong> automatically — no webhook needed.<br>
+            For production deployments with a public HTTPS URL, set the webhook below so Telegram forwards updates directly to your server.
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, msg in messages %}
+              <div class="flash-msg {{ category }}">{{ msg }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <label for="base_url">Public Base URL (e.g. https://yourdomain.com)</label>
+            <input type="text" name="base_url" id="base_url" placeholder="https://yourdomain.com" required>
+            <button type="submit"><i class="fas fa-plug"></i> Set Webhook</button>
+        </form>
+
+        {% if webhook_info %}
+        <div class="info-box">
+            <h3><span class="status-dot {{ 'green' if webhook_info.url else 'red' }}"></span>Current Webhook Status</h3>
+            <div class="row"><span class="label">URL:</span><span class="val">{{ webhook_info.url or 'Not set (polling mode)' }}</span></div>
+            <div class="row"><span class="label">Pending updates:</span><span class="val">{{ webhook_info.pending_update_count or 0 }}</span></div>
+            <div class="row"><span class="label">Last error:</span><span class="val">{{ webhook_info.last_error_message or 'None' }}</span></div>
+        </div>
+        {% endif %}
+
+        <a href="{{ url_for('dashboard') }}" class="back"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+</body>
+</html>

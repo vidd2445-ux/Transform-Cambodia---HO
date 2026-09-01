@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check In/Out - Transform Cambodia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="{{ request.host_url }}static/favicon.png">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            color: #333;
+        }
+        .landing-card {
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 2rem rgba(0,0,0,0.25);
+            max-width: 480px;
+            width: 90%;
+            overflow: hidden;
+        }
+        .landing-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .landing-header .heart-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+        .landing-header h2 {
+            font-size: 1.3rem;
+            margin: 0.5rem 0 0;
+        }
+        .landing-header .tagline {
+            color: #D4A843;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        .landing-body {
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .staff-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .staff-class {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+        .status-not-checked { background: #e9ecef; color: #495057; }
+        .status-checked-in { background: #d1e7dd; color: #0f5132; }
+        .status-checked-out { background: #cff4fc; color: #055160; }
+        .time-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+        .btn-checkin {
+            background: #198754;
+            border-color: #198754;
+            color: #fff;
+            border-radius: 2rem;
+            padding: 0.6rem 2rem;
+            font-weight: 500;
+        }
+        .btn-checkin:hover { background: #157347; color: #fff; }
+        .btn-checkout {
+            background: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+            border-radius: 2rem;
+            padding: 0.6rem 2rem;
+            font-weight: 500;
+        }
+        .btn-checkout:hover { background: #0b5ed7; color: #fff; }
+        .btn-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .landing-footer {
+            padding: 0 1.5rem 1rem;
+            text-align: center;
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+        }
+        .landing-footer small {
+            color: #adb5bd;
+        }
+        .error-card {
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 0.5rem 2rem rgba(0,0,0,0.25);
+            max-width: 420px;
+            width: 90%;
+            padding: 2rem;
+            text-align: center;
+        }
+        .error-card i { font-size: 3rem; color: #dc3545; }
+        /* Success checkmark animation */
+        .success-icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .success-icon-container img {
+            width: 72px;
+            height: 72px;
+            animation: successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes successPop {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        /* Scanner info panel */
+        .scanner-info-panel {
+            background: #f8f9fa;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: left;
+            border: 1px solid #e9ecef;
+        }
+        .scanner-info-panel .info-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.15rem;
+        }
+        .scanner-info-panel .info-value {
+            font-size: 0.95rem;
+            color: #1a1a2e;
+            font-weight: 500;
+        }
+        .scanner-info-panel .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .scanner-info-panel .info-row:last-child {
+            border-bottom: none;
+        }
+        .scanner-info-panel .info-row .info-icon {
+            color: #D4A843;
+            margin-right: 0.5rem;
+            width: 1.2rem;
+            text-align: center;
+        }
+        .success-flash {
+            animation: flashGreen 2s ease-out;
+        }
+        @keyframes flashGreen {
+            0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(25, 135, 84, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+        }
+        /* ── GPS / Geofence Styles ── */
+        .gps-status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin: 0.75rem 0;
+            transition: background 0.4s, color 0.4s;
+        }
+        .gps-status-bar.gps-waiting {
+            background: #fff3cd;
+            color: #664d03;
+        }
+        .gps-status-bar.gps-ok {
+            background: #d1e7dd;
+            color: #0f5132;
+        }
+        .gps-status-bar.gps-denied {
+            background: #f8d7da;
+            color: #842029;
+        }
+        .gps-status-bar.gps-outside {
+            background: #f8d7da;
+            color: #842029;
+        }
+        .gps-pulse {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: gpsPulse 1.5s infinite;
+        }
+        .gps-pulse.yellow { background: #ffc107; }
+        .gps-pulse.green { background: #198754; }
+        .gps-pulse.red { background: #dc3545; }
+        @keyframes gpsPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+{% if error %}
+    <div class="error-card">
+        <i class="bi bi-exclamation-triangle"></i>
+        <h5 class="mt-3">QR Code Error</h5>
+        <p class="text-muted">{{ error }}</p>
+        <a href="/" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-house"></i> Go to Home
+        </a>
+    </div>
+{% elif staff %}
+    <div class="landing-card" id="landing-card">
+        <div class="landing-header">
+            <img src="{{ request.host_url }}static/favicon.png" alt="Transform Cambodia" class="heart-icon">
+            <h2>Transform Cambodia</h2>
+            <p class="tagline">Raising Cambodia's Next Leaders</p>
+        </div>
+        <div class="landing-body">
+            <div class="mb-3">
+                <i class="bi bi-person-circle" style="font-size:2.5rem;color:#D4A843;"></i>
+            </div>
+            <div class="staff-name">{{ staff.name }}</div>
+            <div class="staff-class">{{ staff.class_name }} &middot; {{ staff.id }}</div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            {% if category == 'success' %}
+            <!-- Show green checkmark icon on success -->
+            <div class="success-icon-container">
+                <img src="{{ request.host_url }}static/success_check.png" alt="Success">
+            </div>
+            {% endif %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <!-- ═══ GPS / Geofence Status Bar ═══ -->
+            <div id="gps-status-bar" class="gps-status-bar gps-waiting">
+                <span class="gps-pulse yellow" id="gps-pulse-dot"></span>
+                <i class="bi bi-geo-alt" id="gps-icon"></i>
+                <span id="gps-status-text">Acquiring GPS location…</span>
+                <button id="gps-retry-btn" class="btn btn-sm btn-outline-danger ms-2" style="display:none;" onclick="retryGps()">
+                    <i class="bi bi-arrow-repeat"></i> Retry GPS
+                </button>
+            </div>
+            <!-- GPS permission help panel (shown when denied) -->
+            <div id="gps-help-panel" class="card mb-3" style="display:none; border:1px solid #dc3545;">
+                <div class="card-body p-3">
+                    <h6 class="text-danger mb-2"><i class="bi bi-geo-alt"></i> Location Access Required</h6>
+                    <p class="small mb-2">Your browser has blocked location access. To re-enable GPS for accurate check-in:</p>
+                    <ul class="small mb-2 ps-3" id="gps-instructions-list">
+                        <li><strong>⚠ HTTPS required:</strong> GPS geolocation only works over <strong>HTTPS</strong> or <strong>localhost</strong>. If you are on <code>http://</code>, switch to <code>https://</code> — browsers silently block geolocation on plain HTTP.</li>
+                        <li><strong>Chrome (Android/Desktop):</strong> Tap the lock/&#9889; icon in the address bar → Site Settings → Location → Allow</li>
+                        <li><strong>Safari (iOS):</strong> Settings → Privacy & Security → Location Services → Safari Websites → While Using</li>
+                        <li><strong>Safari (macOS):</strong> Safari → Preferences → Websites → Location → Allow</li>
+                        <li><strong>Firefox:</strong> Click the location icon in the address bar → Clear &quot;Block&quot; → Reload</li>
+                        <li><strong>Samsung Internet:</strong> Settings → Sites and downloads → Location permissions → Allow</li>
+                    </ul>
+                    <p class="small text-muted mb-0"><i class="bi bi-info-circle"></i> After changing the setting, <strong>reload this page</strong> or tap <strong>Retry GPS</strong> above.</p>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                {% if staff.checked_out %}
+                <span class="status-badge status-checked-out">
+                    <i class="bi bi-check-circle"></i> Checked Out
+                </span>
+                {% elif staff.checked_in %}
+                <span class="status-badge status-checked-in">
+                    <i class="bi bi-box-arrow-in-right"></i> Checked In
+                </span>
+                {% else %}
+                <span class="status-badge status-not-checked">
+                    <i class="bi bi-dash-circle"></i> Not Checked In
+                </span>
+                {% endif %}
+            </div>
+
+            {% if staff.time_in or staff.time_out %}
+            <div class="time-info">
+                {% if staff.time_in %}<i class="bi bi-box-arrow-in-right"></i> In: {{ staff.time_in }}{% endif %}
+                {% if staff.time_out %} &middot; <i class="bi bi-box-arrow-right"></i> Out: {{ staff.time_out }}{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                {% if staff.not_marked %}
+                <form method="POST" action="/attendance/qr/checkin" id="checkin-form">
+                    <input type="hidden" name="sid" value="{{ staff.id }}">
+                    <input type="hidden" name="gps_lat" id="checkin-gps-lat" value="">
+                    <input type="hidden" name="gps_lon" id="checkin-gps-lon" value="">
+                    <input type="hidden" name="gps_accuracy" id="checkin-gps-accuracy" value="">
+                    <button type="submit" class="btn btn-checkin" id="checkin-btn">
+                        <i class="bi bi-box-arrow-in-right"></i> Check In
+                    </button>
+                </form>
+                <button class="btn btn-checkout btn-disabled" disabled>
+                    <i class="bi bi-box-arrow-right"></i> Check Out
+                </button>
+                {% elif staff.checked_in %}
+                <button class="btn btn-checkin btn-disabled" disabled>
+                    <i class="bi bi-box-arrow-in-right"></i> Already In
+                </button>
+                <form method="POST" action="/attendance/qr/checkout" id="checkout-form">
+                    <input type="hidden" name="sid" value="{{ staff.id }}">
+                    <input type="hidden" name="gps_lat" id="checkout-gps-lat" value="">
+                    <input type="hidden" name="gps_lon" id="checkout-gps-lon" value="">
+                    <input type="hidden" name="gps_accuracy" id="checkout-gps-accuracy" value="">
+                    <button type="submit" class="btn btn-checkout" id="checkout-btn">
+                        <i class="bi bi-box-arrow-right"></i> Check Out
+                    </button>
+                </form>
+                {% elif staff.checked_out %}
+                <button class="btn btn-checkin btn-disabled" disabled>
+                    <i class="bi bi-box-arrow-in-right"></i> Already In
+                </button>
+                <button class="btn btn-checkout btn-disabled" disabled>
+                    <i class="bi bi-box-arrow-right"></i> Done for Today
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Scanner Information Panel -->
+            <div class="scanner-info-panel">
+                <div class="info-row">
+                    <div>
+                        <i class="bi bi-person-badge info-icon"></i>
+                        <span class="info-label">Scanner</span><br>
+                        <span class="info-value">{{ staff.name }}</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="info-label">Staff ID</span><br>
+                        <span class="info-value">{{ staff.id }}</span>
+                    </div>
+                </div>
+                {% if client_location %}
+                <div class="info-row">
+                    <div>
+                        <i class="bi bi-geo-alt info-icon"></i>
+                        <span class="info-label">IP Location</span><br>
+                        <span class="info-value">{{ client_location }}</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="info-label">IP Address</span><br>
+                        <span class="info-value">{{ client_ip }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                {% if staff.centre_lat %}
+                <div class="info-row">
+                    <div>
+                        <i class="bi bi-broadcast info-icon"></i>
+                        <span class="info-label">Location</span><br>
+                        <span class="info-value">{{ staff.class_name }}</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="info-label">Allowed Radius</span><br>
+                        <span class="info-value">{{ staff.centre_radius }}m</span>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="info-row" id="gps-detail-row" style="display:none;">
+                    <div>
+                        <i class="bi bi-pin-map info-icon"></i>
+                        <span class="info-label">Your GPS</span><br>
+                        <span class="info-value" id="gps-coords-value">—</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="info-label">Distance to Centre</span><br>
+                        <span class="info-value" id="gps-distance-value">—</span>
+                    </div>
+                </div>
+                {% if staff.time_in %}
+                <div class="info-row">
+                    <div>
+                        <i class="bi bi-box-arrow-in-right info-icon"></i>
+                        <span class="info-label">Check-In Time</span><br>
+                        <span class="info-value" style="color:#198754;">{{ staff.time_in }}</span>
+                    </div>
+                    <div class="text-end">
+                        <span class="info-label">Date</span><br>
+                        <span class="info-value">{{ staff.today }}</span>
+                    </div>
+                </div>
+                {% endif %}
+                {% if staff.time_out %}
+                <div class="info-row">
+                    <div>
+                        <i class="bi bi-box-arrow-right info-icon"></i>
+                        <span class="info-label">Check-Out Time</span><br>
+                        <span class="info-value" style="color:#0d6efd;">{{ staff.time_out }}</span>
+                    </div>
+                    <div class="text-end">
+                        {% if staff.time_in %}
+                        <span class="info-label">Duration</span><br>
+                        <span class="info-value" id="duration-value">—</span>
+                        {% else %}
+                        <span class="info-label">Date</span><br>
+                        <span class="info-value">{{ staff.today }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="landing-footer">
+            <small><img src="{{ request.host_url }}static/favicon.png" alt="" style="width:1rem;height:1rem;vertical-align:middle;"> Transform Cambodia Attendance System</small>
+        </div>
+    </div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════
+// GPS Geofence Logic for QR Landing Page
+// ═══════════════════════════════════════════════════
+(function() {
+    // Centre coordinates from server (if available)
+    const centreLat = {{ staff.centre_lat | default('null') }};
+    const centreLon = {{ staff.centre_lon | default('null') }};
+    const centreRadius = {{ staff.centre_radius | default('null') }};
+
+    // Check for secure context (HTTPS or localhost) — required for geolocation on modern browsers
+    const isSecure = window.isSecureContext;
+    const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+    // Elements
+    const statusBar = document.getElementById('gps-status-bar');
+    const statusText = document.getElementById('gps-status-text');
+    const pulseDot   = document.getElementById('gps-pulse-dot');
+    const gpsIcon    = document.getElementById('gps-icon');
+    const detailRow  = document.getElementById('gps-detail-row');
+    const coordsVal  = document.getElementById('gps-coords-value');
+    const distVal    = document.getElementById('gps-distance-value');
+
+    // Hidden form fields
+    const checkinLat = document.getElementById('checkin-gps-lat');
+    const checkinLon = document.getElementById('checkin-gps-lon');
+    const checkinAcc = document.getElementById('checkin-gps-accuracy');
+    const checkoutLat = document.getElementById('checkout-gps-lat');
+    const checkoutLon = document.getElementById('checkout-gps-lon');
+    const checkoutAcc = document.getElementById('checkout-gps-accuracy');
+
+    // Haversine distance (meters)
+    function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const toRad = x => x * Math.PI / 180;
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a = Math.sin(dLat/2)**2 +
+                  Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                  Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // Populate hidden fields in both forms
+    function setGpsFields(lat, lon, accuracy) {
+        const vals = [lat, lon, accuracy];
+        [checkinLat, checkoutLat].forEach((el, i) => { if (el) el.value = vals[0]; });
+        [checkinLon, checkoutLon].forEach((el, i) => { if (el) el.value = vals[1]; });
+        [checkinAcc, checkoutAcc].forEach((el, i) => { if (el) el.value = vals[2]; });
+    }
+
+    // Update status bar
+    function setStatus(state, text) {
+        statusBar.className = 'gps-status-bar';
+        pulseDot.className = 'gps-pulse';
+        if (state === 'waiting') {
+            statusBar.classList.add('gps-waiting');
+            pulseDot.classList.add('yellow');
+        } else if (state === 'ok') {
+            statusBar.classList.add('gps-ok');
+            pulseDot.classList.add('green');
+            // Stop pulsing on success
+            pulseDot.style.animation = 'none';
+            pulseDot.style.opacity = '1';
+        } else if (state === 'denied') {
+            statusBar.classList.add('gps-denied');
+            pulseDot.classList.add('red');
+            pulseDot.style.animation = 'none';
+            pulseDot.style.opacity = '1';
+        } else if (state === 'outside') {
+            statusBar.classList.add('gps-outside');
+            pulseDot.classList.add('red');
+            pulseDot.style.animation = 'none';
+            pulseDot.style.opacity = '1';
+        }
+        statusText.textContent = text;
+    }
+
+    // Elements for GPS help UI
+    const retryBtn = document.getElementById('gps-retry-btn');
+    const helpPanel = document.getElementById('gps-help-panel');
+
+    // GPS options — use fresh readings, generous timeout for high-accuracy
+    var gpsOptsLow = { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 };
+    var gpsOptsHigh = { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 };
+
+    // Shared GPS success handler
+    function onGpsSuccess(pos) {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        const acc = Math.round(pos.coords.accuracy);
+
+        // Fill hidden fields
+        setGpsFields(lat, lon, acc);
+
+        // Show GPS details
+        detailRow.style.display = '';
+        coordsVal.textContent = lat.toFixed(5) + ', ' + lon.toFixed(5) + ' (±' + acc + 'm)';
+
+        // Hide retry button & help panel on success
+        if (retryBtn) retryBtn.style.display = 'none';
+        if (helpPanel) helpPanel.style.display = 'none';
+
+        // If accuracy is poor (>100m), try again with high accuracy
+        if (acc > 100 && pos.coords.accuracy) {
+            setStatus('waiting', 'GPS acquired (±' + acc + 'm) — refining for better accuracy…');
+            navigator.geolocation.getCurrentPosition(onGpsSuccess, function() {
+                // Refinement failed — keep the rough position
+            }, gpsOptsHigh);
+            return;
+        }
+
+        // Check distance to centre if centre coords available
+        if (centreLat !== null && centreLon !== null && centreRadius !== null) {
+            const dist = Math.round(haversine(lat, lon, centreLat, centreLon));
+            distVal.textContent = dist + 'm';
+
+            if (dist <= centreRadius) {
+                setStatus('ok', '✓ GPS verified — ' + dist + 'm from centre (within ' + centreRadius + 'm)');
+            } else {
+                setStatus('outside', '✗ Outside geofence — ' + dist + 'm away (allowed: ' + centreRadius + 'm)');
+            }
+        } else {
+            setStatus('ok', '✓ GPS acquired');
+            distVal.textContent = 'N/A';
+        }
+    }
+
+    // Shared GPS error handler — with Permissions API and help panel
+    function onGpsError(err) {
+        let msg = 'GPS unavailable';
+        let isDenied = false;
+        if (err.code === 1) { msg = 'Location permission denied'; isDenied = true; }
+        else if (err.code === 2) msg = 'Position unavailable';
+        else if (err.code === 3) msg = 'GPS request timed out';
+
+        setStatus('denied', msg + ' — check-in allowed but flagged');
+        detailRow.style.display = '';
+        coordsVal.textContent = 'N/A';
+        distVal.textContent = 'N/A';
+
+        // Show retry button
+        if (retryBtn) retryBtn.style.display = '';
+
+        if (isDenied) {
+            // Check Permissions API for current state
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'geolocation' }).then(function(result) {
+                    if (result.state === 'denied') {
+                        // User has actively denied — show help instructions
+                        if (helpPanel) helpPanel.style.display = '';
+                        setStatus('denied', 'Location blocked — tap Retry or follow instructions below');
+                    } else if (result.state === 'prompt') {
+                        // Can still be prompted — retry should work
+                        setStatus('denied', 'Location not yet granted — tap Retry GPS to allow');
+                    }
+                }).catch(function() {
+                    // Permissions API not supported — just show help
+                    if (helpPanel) helpPanel.style.display = '';
+                });
+            } else {
+                // No Permissions API — show help panel as fallback
+                if (helpPanel) helpPanel.style.display = '';
+            }
+        }
+    }
+
+    // Retry GPS function (called by the retry button)
+    function retryGps() {
+        setStatus('waiting', 'Retrying GPS location…');
+        if (retryBtn) retryBtn.style.display = 'none';
+        // Try low-accuracy first for a quick position, then refine
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            onGpsSuccess(pos);
+            // If accuracy is poor, auto-refine
+            if (pos.coords.accuracy > 50) {
+                navigator.geolocation.getCurrentPosition(onGpsSuccess, function(){}, gpsOptsHigh);
+            }
+        }, onGpsError, gpsOptsLow);
+    }
+
+    // ── Secure Context Check ──
+    // Most modern browsers require HTTPS (or localhost) for geolocation.
+    // If not secure, navigator.geolocation may exist but always fail silently,
+    // or may not exist at all.
+    if (!isSecure && !isLocalhost) {
+        setStatus('denied', '⚠ GPS requires HTTPS — location not available on HTTP');
+        detailRow.style.display = '';
+        coordsVal.textContent = 'Requires HTTPS';
+        distVal.textContent = 'N/A';
+        if (helpPanel) helpPanel.style.display = '';
+        // Still set up retry in case user switches to HTTPS
+        if (retryBtn) retryBtn.style.display = '';
+        return; // Do not attempt geolocation on insecure context
+    }
+
+    // Request GPS on page load — two-phase approach
+    if ('geolocation' in navigator) {
+        setStatus('waiting', 'Acquiring GPS location…');
+        // Phase 1: Quick low-accuracy position
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            onGpsSuccess(pos);
+            // Phase 2: Refine with high accuracy if the first was rough
+            if (pos.coords.accuracy > 50) {
+                setStatus('waiting', 'GPS acquired (±' + Math.round(pos.coords.accuracy) + 'm) — refining…');
+                navigator.geolocation.getCurrentPosition(onGpsSuccess, function() {
+                    // Refinement timed out — we still have the rough position
+                }, gpsOptsHigh);
+            }
+        }, onGpsError, gpsOptsLow);
+    } else {
+        setStatus('denied', 'Geolocation not supported by this browser — check-in allowed but flagged');
+        detailRow.style.display = '';
+        coordsVal.textContent = 'Not supported';
+        distVal.textContent = 'N/A';
+    }
+
+    // Calculate duration between check-in and check-out
+    const durationEl = document.getElementById('duration-value');
+    {% if staff.time_in and staff.time_out %}
+    if (durationEl) {
+        const timeIn = '{{ staff.time_in }}';
+        const timeOut = '{{ staff.time_out }}';
+        const [hIn, mIn] = timeIn.split(':').map(Number);
+        const [hOut, mOut] = timeOut.split(':').map(Number);
+        let diffMin = (hOut * 60 + mOut) - (hIn * 60 + mIn);
+        if (diffMin < 0) diffMin += 24 * 60;
+        const hours = Math.floor(diffMin / 60);
+        const mins = diffMin % 60;
+        if (hours > 0) {
+            durationEl.textContent = hours + 'h ' + mins + 'm';
+        } else {
+            durationEl.textContent = mins + ' min';
+        }
+    }
+    {% endif %}
+
+    // Add success flash effect to the card when check-in/check-out succeeds
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    {% if category == 'success' %}
+    const card = document.getElementById('landing-card');
+    if (card) {
+        card.classList.add('success-flash');
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert-success');
+            alerts.forEach(a => {
+                const bsAlert = new bootstrap.Alert(a);
+                bsAlert.close();
+            });
+        }, 4000);
+    }
+    {% endif %}
+    {% endfor %}
+    {% endwith %}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm h-100">
+                <div class="card-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h6 class="mb-0"><i class="bi bi-building"></i> Location Attendance Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Staff</th>
+                                    <th>Present</th>
+                                    <th>Absent</th>
+                                    <th>Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in centre_reports %}
+                                <tr>
+                                    <td>{{ r.name }}</td>
+                                    <td>{{ r.total }}</td>
+                                    <td class="text-success">{{ r.present }}</td>
+                                    <td class="text-danger">{{ r.absent }}</td>
+                                    <td>
+                                        <span class="badge" style="background:#D4A843;color:#1a1a2e;">
+                                            {{ r.rate }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h6 class="mb-0"><i class="bi bi-calendar-week"></i> Weekly Attendance Trend</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="weeklyChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h6 class="mb-0"><i class="bi bi-bar-chart-line"></i> Monthly Overview</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlyChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Individual Staff Report -->
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header" style="background:#1a1a2e;color:#D4A843;">
+                    <h6 class="mb-0"><i class="bi bi-person-lines-fill"></i> Individual Staff Report</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Select Staff</label>
+                            <select class="form-select" id="staffSelect" onchange="loadStaffReport()">
+                                <option value="">-- Choose a staff --</option>
+                                {% for s in staff %}
+                                <option value="{{ s.id }}">{{ s.name }} ({{ s.roll_no }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Month</label>
+                            <input type="month" class="form-control" id="reportMonth" onchange="loadStaffReport()">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end gap-2">
+                            <button class="btn btn-success btn-sm" onclick="exportStaffReport('csv')">
+                                <i class="bi bi-file-earmark-spreadsheet"></i> CSV
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="exportStaffReport('excel')">
+                                <i class="bi bi-file-earmark-excel"></i> Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div id="staffReportData"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// Weekly Chart
+const weeklyData = {{ weekly_data | tojson }};
+if (weeklyData && weeklyData.length > 0) {
+    const ctx2 = document.getElementById('weeklyChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'line',
+        data: {
+            labels: weeklyData.map(d => d.date),
+            datasets: [
+                { label: 'Present', data: weeklyData.map(d => d.present), borderColor: '#D4A843', backgroundColor: 'rgba(212,168,67,0.1)', fill: true },
+                { label: 'Absent', data: weeklyData.map(d => d.absent), borderColor: '#dc3545', fill: false }
+            ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+// Monthly Chart
+const monthlyData = {{ monthly_data | tojson }};
+if (monthlyData && monthlyData.length > 0) {
+    const ctx3 = document.getElementById('monthlyChart').getContext('2d');
+    new Chart(ctx3, {
+        type: 'bar',
+        data: {
+            labels: monthlyData.map(d => d.month),
+            datasets: [
+                { label: 'Avg Attendance %', data: monthlyData.map(d => d.rate), backgroundColor: '#D4A843' }
+            ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+function loadStaffReport() {
+    const sid = document.getElementById('staffSelect').value;
+    const month = document.getElementById('reportMonth').value;
+    if (!sid) { document.getElementById('staffReportData').innerHTML = ''; return; }
+    fetch(`/reports/staff/${sid}?month=${month}`).then(r => r.json()).then(data => {
+        let html = '<table class="table table-sm"><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody>';
+        data.records.forEach(r => {
+            const badge = r.status === 'present' ? 'bg-success' : r.status === 'absent' ? 'bg-danger' : '';
+            const style = r.status === 'late' ? 'style="background:#D4A843;color:#1a1a2e;"' : '';
+            html += `<tr><td>${r.date}</td><td><span class="badge ${badge}" ${style}>${r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span></td></tr>`;
+        });
+        html += '</tbody></table>';
+        html += `<p><strong>Attendance Rate:</strong> ${data.rate}%</p>`;
+        document.getElementById('staffReportData').innerHTML = html;
+    });
+}
+
+function exportStaffReport(format) {
+    const sid = document.getElementById('staffSelect').value;
+    const month = document.getElementById('reportMonth').value;
+    let url = `/reports/staff/${sid}/export?month=${month}`;
+    if (format === 'excel') url += '&format=excel';
+    window.location.href = url;
+}
+</script>
+{% endblock %}

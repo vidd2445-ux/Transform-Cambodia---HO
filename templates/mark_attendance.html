@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+{% block title %}Mark Attendance{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="card shadow-sm">
+        <div class="card-header" style="background:#1a1a2e;color:#D4A843;">
+            <h5 class="mb-0"><i class="bi bi-check2-square"></i> Mark Attendance</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label"><strong>Location</strong></label>
+                    <select class="form-select" id="centreSelect" onchange="loadStaff()">
+                        <option value="">-- Select Location --</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><strong>Date</strong></label>
+                    <input type="date" class="form-control" id="attendanceDate" value="{{ today }}">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="markAll('present')">
+                        <i class="bi bi-check-all"></i> All Present
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="markAll('absent')">
+                        <i class="bi bi-x-lg"></i> All Absent
+                    </button>
+                </div>
+            </div>
+
+            <div id="staffList"></div>
+
+            <div class="mt-3 text-end" id="submitArea" style="display:none;">
+                <button class="btn btn-primary" onclick="submitAttendance()">
+                    <i class="bi bi-save"></i> Save Attendance
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const allStaff = {{ staff | tojson }};
+
+function loadStaff() {
+    const cid = document.getElementById('centreSelect').value;
+    const list = document.getElementById('staffList');
+    const submit = document.getElementById('submitArea');
+    if (!cid) { list.innerHTML = ''; submit.style.display = 'none'; return; }
+    const filtered = allStaff.filter(s => s.class_id === cid);
+    if (filtered.length === 0) {
+        list.innerHTML = '<div class="alert alert-info">No staff enrolled in this Location.</div>';
+        submit.style.display = 'none';
+        return;
+    }
+    submit.style.display = '';
+    let html = '<table class="table table-hover"><thead style="background:#1a1a2e;color:#D4A843;"><tr>' +
+        '<th>Enrolment No</th><th>Staff Name</th><th>Status</th><th>Time In</th><th>Time Out</th></tr></thead><tbody>';
+    const now = new Date();
+    const defaultTime = now.toTimeString().slice(0,5);
+    filtered.forEach(s => {
+        html += `<tr>
+            <td>${s.roll_no}</td>
+            <td>${s.name}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <input type="radio" class="btn-check" name="status_${s.id}" id="present_${s.id}" value="present" checked>
+                    <label class="btn btn-outline-success" for="present_${s.id}">Present</label>
+                    <input type="radio" class="btn-check" name="status_${s.id}" id="absent_${s.id}" value="absent">
+                    <label class="btn btn-outline-danger" for="absent_${s.id}">Absent</label>
+                    <input type="radio" class="btn-check" name="status_${s.id}" id="late_${s.id}" value="late">
+                    <label class="btn btn-outline-warning" for="late_${s.id}">Late</label>
+                </div>
+            </td>
+            <td><input type="time" class="form-control form-control-sm" id="timein_${s.id}" value="${defaultTime}" style="max-width:110px;"></td>
+            <td><input type="time" class="form-control form-control-sm" id="timeout_${s.id}" value="" placeholder="--:--" style="max-width:110px;"></td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    list.innerHTML = html;
+}
+
+function markAll(status) {
+    document.querySelectorAll(`input[type=radio][value=${status}]`).forEach(r => r.checked = true);
+}
+
+function submitAttendance() {
+    const cid = document.getElementById('centreSelect').value;
+    const date = document.getElementById('attendanceDate').value;
+    if (!cid || !date) { alert('Please select a Location and date.'); return; }
+    const records = [];
+    allStaff.filter(s => s.class_id === cid).forEach(s => {
+        const status = document.querySelector(`input[name=status_${s.id}]:checked`).value;
+        const timeIn = document.getElementById(`timein_${s.id}`).value;
+        const timeOut = document.getElementById(`timeout_${s.id}`).value;
+        records.push({ student_id: s.id, status: status, time_in: timeIn, time_out: timeOut });
+    });
+    fetch('/attendance/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ class_id: cid, date: date, records: records })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Attendance saved successfully!');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}
