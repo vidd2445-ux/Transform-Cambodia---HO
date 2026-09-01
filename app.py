@@ -61,9 +61,24 @@ def init_data():
     if not os.path.exists(ATTENDANCE_FILE):
         save_json(ATTENDANCE_FILE, [])
     if not os.path.exists(USERS_FILE):
-        save_json(USERS_FILE, [
-            {"id": "U001", "username": "admin", "password": "admin123", "role": "admin", "name": "Administrator", "phone": "+855 96 123 4567", "email": "admin@transformcambodia.org", "telegram_chat_id": ""}
-        ])
+        admin_username = os.environ.get('INITIAL_ADMIN_USERNAME')
+        admin_password = os.environ.get('INITIAL_ADMIN_PASSWORD')
+        admin_email = os.environ.get('INITIAL_ADMIN_EMAIL')
+        if not all([admin_username, admin_password, admin_email]):
+            raise RuntimeError(
+                'Set INITIAL_ADMIN_USERNAME, INITIAL_ADMIN_PASSWORD, and '
+                'INITIAL_ADMIN_EMAIL before starting with an empty data directory.'
+            )
+        save_json(USERS_FILE, [{
+            "id": "U001",
+            "username": admin_username,
+            "password": admin_password,
+            "role": "admin",
+            "name": os.environ.get('INITIAL_ADMIN_NAME', admin_username),
+            "phone": "",
+            "email": admin_email,
+            "telegram_chat_id": ""
+        }])
     if not os.path.exists(OTP_FILE):
         save_json(OTP_FILE, [])
 

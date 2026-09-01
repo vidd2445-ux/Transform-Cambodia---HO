@@ -18,3 +18,11 @@ services:
         sync: false
       - key: TELEGRAM_BOT_USERNAME
         value: TransformCambodiastaff_bot
+      - key: INITIAL_ADMIN_USERNAME
+        sync: false
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
+      - key: INITIAL_ADMIN_EMAIL
+        sync: false
+      - key: INITIAL_ADMIN_NAME
+        sync: false
